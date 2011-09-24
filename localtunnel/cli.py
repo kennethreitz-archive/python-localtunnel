@@ -9,7 +9,9 @@ This module provides the command-line interface for Localtunnel.
 import sys
 
 import clint
-from clint.arguments import _expand_path as expand_path
+from clint.utils import expand_path
+
+from . import http
 
 USAGE = '''
 Usage: localtunnel [options] <localport>
@@ -17,14 +19,12 @@ Usage: localtunnel [options] <localport>
     -h, --help                       show this help
 '''.lstrip()
 
-PORT_ERROR = 'Invalid port number.'
 
 def display_usage():
-    """Displays localtunnel usage."""
     print USAGE
 
 def display_port_error():
-    print PORT_ERROR
+    print 'Invalid port number.'
 
 
 def main():
@@ -35,9 +35,20 @@ def main():
         sys.exit()
 
     elif ('-k', '--key') in clint.args:
-        print 'importing key'
-        # print clint.args.files
-        print expand_path('~/ssh/*.pub')
+
+        if len(clint.args.files) != 1:
+            print 'Please specify a specific public key file.'
+
+            maybe_key = expand_path('~/.ssh/*.pub').pop(0)
+            print 'Best guess: {0}\n'.format(maybe_key)
+            sys.exit(1)
+
+        keyfile = clint.args.files.pop(0)
+
+        with open(keyfile, 'rb') as f:
+            http.register_key(f.read())
+
+        print 'Key successfully registered.'
         sys.exit()
 
     elif not len(clint.args.not_flags):
